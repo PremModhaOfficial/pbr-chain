@@ -1,0 +1,19 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use sha2::{Digest, Sha256};
+
+pub fn current_time_millis() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time problem")
+        .as_micros() as u64
+}
+
+pub fn hash_function(input: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(input.as_bytes());
+
+    let res = hasher.finalize();
+    format!("{:x}",res)
+
+}
