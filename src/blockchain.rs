@@ -1,6 +1,6 @@
 use crate::block::{Block, DefaultDebug};
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct BlockChain<T: DefaultDebug> {
     chain: Vec<Block<T>>,
 }
@@ -29,7 +29,7 @@ impl<T: DefaultDebug> BlockChain<T> {
             let new_block = Block::mine_block(last_block, T::default())?;
 
             self.chain.push(new_block);
-            return Ok(())
+            return Ok(());
         }
         Err(format!(
             "Maybe there are no `Blocks` in the Blockchain: `{:#?}`",
@@ -39,5 +39,53 @@ impl<T: DefaultDebug> BlockChain<T> {
 
     pub fn chain(&self) -> &[Block<T>] {
         &self.chain
+    }
+
+    pub fn validate_hashes(vec_of_blocks: &[Block<T>]) -> bool {
+        vec_of_blocks.windows(2).all(|window| {
+            let prev_block = &window[0];
+            let curr_block = &window[1];
+
+            let prev_hash = prev_block.hash.as_ref().unwrap();
+            let curr_prev_hash = curr_block.last_hash.as_ref().unwrap();
+
+            prev_hash == curr_prev_hash
+        })
+    }
+
+    pub fn is_valid_chain(&self, incoming_chain: &Self) -> bool {
+        if self.chain.len() >= incoming_chain.chain().len() {
+            return false;
+        }
+
+        match (
+            self.chain.split_first(),
+            incoming_chain.chain().split_first(),
+        ) {
+            (Some(ours), Some(thiers)) => {
+                if ours.0 != thiers.0 {
+                    return false;
+                }
+
+                let (their_slice, new_blocks) = thiers.1.split_at(ours.1.len());
+
+                for (i, our_block) in ours.1.iter().enumerate() {
+                    if &their_slice[i] != our_block {
+                        return false;
+                    }
+                }
+                BlockChain::validate_hashes(new_blocks)
+            }
+            _ => false,
+        }
+    }
+
+    pub fn accept(&mut self, b2: &BlockChain<T>) -> Result<(), String> {
+        if self.is_valid_chain(b2) {
+            *self = b2.clone();
+            Ok(())
+        } else {
+            Err("new Block May Not be valid BlockChain".to_owned())
+        }
     }
 }

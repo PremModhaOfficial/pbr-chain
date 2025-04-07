@@ -1,14 +1,14 @@
 use std::fmt::Debug;
 
-use crate::utils::{current_time_millis, hash_function};
+use crate::utils::{current_time_millis, generate_hash};
 
 // Define a trait that combines Default and Debug
-pub trait DefaultDebug: Default + Debug {}
+pub trait DefaultDebug: Default + Debug + PartialEq + Clone {}
 
 // Implement it for all types that satisfy both bounds
-impl<T> DefaultDebug for T where T: Default + Debug {}
+impl<T> DefaultDebug for T where T: Default + Debug + PartialEq + Clone {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone )]
 pub struct Block<T: DefaultDebug> {
     pub timestamp_milis: u64,
     pub last_hash: Option<String>,
@@ -24,7 +24,7 @@ impl<T: DefaultDebug> Default for Block<T> {
             hash: None,
             data: Default::default(),
         };
-        genesis.hash = Some(hash_function(&format!("{:#?}", genesis)));
+        genesis.hash = Some(generate_hash(&genesis));
 
         genesis
     }
@@ -47,7 +47,7 @@ impl<T: DefaultDebug> Block<T> {
     pub fn mine_block(last_block: &Block<T>, data: T) -> Result<Block<T>, String> {
         let timestamp_milis = current_time_millis();
         if let Some(last_hash) = &last_block.hash {
-            let hash = hash_function(&format!("{:#?}", last_block));
+            let hash = generate_hash(last_block);
             return Ok(Block::new(timestamp_milis, last_hash, &hash, data));
         }
 

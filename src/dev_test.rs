@@ -1,4 +1,7 @@
+#![allow(unused_variables)]
+#![allow(unused_must_use)]
 mod tests {
+
     use crate::{block::Block, blockchain::BlockChain};
     use std::collections::HashMap;
 
@@ -40,21 +43,63 @@ mod tests {
             bc.mine().unwrap();
         }
 
-        let hashses: Vec<(&str, &str)> = bc
-            .chain()
-            .iter()
-            .map(|blk| {
-                (
-                    blk.last_hash.as_deref().unwrap_or(""),
-                    blk.hash.as_deref().unwrap_or(""),
-                )
-            })
-            .collect();
+        bc.chain().windows(2).for_each(|win| {
+            let last = &win[0];
+            let curr = &win[1];
+            assert_eq!(
+                last.hash.as_ref().unwrap(),
+                curr.last_hash.as_ref().unwrap()
+            );
+        });
+    }
 
-        for i in 1..hashses.len() {
-            assert_eq!(hashses[i].0, hashses[i - 1].1)
+    #[test]
+    #[should_panic]
+    fn invalid_blockchain() {
+        let mut bc = BlockChain::<String>::new();
+
+        bc.initiate().unwrap();
+        for _x in 1..10 {
+            bc.mine().unwrap();
         }
 
-        // println!("{:#?}", hashses);
+        let mut b2 = BlockChain::<String>::new();
+        b2.initiate();
+
+        assert!(bc.is_valid_chain(&b2));
+    }
+    #[test]
+    fn test_new_blocks() {
+        let mut bc = BlockChain::<String>::new();
+
+        bc.initiate().unwrap();
+        for _x in 1..10 {
+            bc.mine().unwrap();
+        }
+
+        let mut b2 = bc.clone();
+        for k in 1..10 {
+            b2.mine();
+        }
+        assert!(bc.is_valid_chain(&b2));
+    }
+    #[test]
+    fn test_incorporating_new_blocks() {
+        let mut bc = BlockChain::<String>::new();
+
+        bc.initiate().unwrap();
+        for _x in 1..10 {
+            bc.mine().unwrap();
+        }
+
+        let mut b2 = bc.clone();
+        for k in 1..2 {
+            b2.mine();
+        }
+        assert!(bc.is_valid_chain(&b2));
+
+        bc.accept(&b2).unwrap();
+
+        assert_eq!(bc, b2);
     }
 }
