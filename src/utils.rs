@@ -17,6 +17,7 @@ pub fn generate_hash<T: DefaultDebug>(input: &Block<T>) -> String {
         "|{:?}|{:?}|{:?}|",
         input.timestamp_milis, input.last_hash, input.data
     );
+    // dbg!(&input);
     hasher.update(input.as_bytes());
 
     let res = hasher.finalize();

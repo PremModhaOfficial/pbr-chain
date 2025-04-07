@@ -2,7 +2,7 @@
 #![allow(unused_must_use)]
 mod tests {
 
-    use crate::{block::Block, blockchain::BlockChain};
+    use crate::{block::Block, blockchain::BlockChain, utils::generate_hash};
     use std::collections::HashMap;
 
     #[test]
@@ -13,7 +13,8 @@ mod tests {
 
     #[test]
     fn test_block_creation() {
-        let block: Block<HashMap<String, String>> = Block::new(1000, "asd", "kjkj", HashMap::new());
+        let block: Block<HashMap<String, String>> =
+            Block::new(1000, "asd".to_owned(), "kjkj".to_string(), HashMap::new());
 
         assert_eq!(block.timestamp_milis, 1000);
         assert_eq!(block.last_hash.unwrap(), "asd".to_string());
@@ -83,6 +84,21 @@ mod tests {
         }
         assert!(bc.is_valid_chain(&b2));
     }
+
+    #[test]
+    fn the_hash_function() {
+        let mut bc = BlockChain::<String>::new();
+        bc.initiate();
+        for k in 1..100 {
+            bc.mine();
+        }
+        bc.chain().iter().for_each(|a| {
+            if let Some(hashed) = a.hash() {
+                assert_eq!(hashed, generate_hash(a))
+            }
+        });
+    }
+
     #[test]
     fn test_incorporating_new_blocks() {
         let mut bc = BlockChain::<String>::new();

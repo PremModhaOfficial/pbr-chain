@@ -8,7 +8,7 @@ pub trait DefaultDebug: Default + Debug + PartialEq + Clone {}
 // Implement it for all types that satisfy both bounds
 impl<T> DefaultDebug for T where T: Default + Debug + PartialEq + Clone {}
 
-#[derive(Debug, PartialEq, Clone )]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Block<T: DefaultDebug> {
     pub timestamp_milis: u64,
     pub last_hash: Option<String>,
@@ -31,11 +31,11 @@ impl<T: DefaultDebug> Default for Block<T> {
 }
 
 impl<T: DefaultDebug> Block<T> {
-    pub fn new(timestamp_milis: u64, last_hash: &str, hash: &str, data: T) -> Self {
+    pub fn new(timestamp_milis: u64, last_hash: String, hash: String, data: T) -> Self {
         Self {
             timestamp_milis,
-            last_hash: Some(last_hash.to_string()),
-            hash: Some(hash.to_string()),
+            last_hash: Some(last_hash),
+            hash: Some(hash),
             data,
         }
     }
@@ -45,10 +45,22 @@ impl<T: DefaultDebug> Block<T> {
     }
 
     pub fn mine_block(last_block: &Block<T>, data: T) -> Result<Block<T>, String> {
-        let timestamp_milis = current_time_millis();
+        /*
+        TODO: make chin.append([last_block,new_block]) making it possible for current's
+        modification
+        */
+        dbg!(&last_block);
         if let Some(last_hash) = &last_block.hash {
-            let hash = generate_hash(last_block);
-            return Ok(Block::new(timestamp_milis, last_hash, &hash, data));
+            let mut new_block = Block {
+                timestamp_milis: current_time_millis(),
+                last_hash: Some(last_hash.to_string()),
+                hash: None,
+                data,
+            };
+
+            new_block.hash = Some(generate_hash(&new_block));
+
+            return Ok(new_block);
         }
 
         Err("Problem Mining Block".to_string())
