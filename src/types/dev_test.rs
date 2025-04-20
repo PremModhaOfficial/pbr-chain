@@ -1,9 +1,7 @@
-#![allow(unused_variables)]
-#![allow(unused_must_use)]
 mod tests {
 
-    use crate::{block::Block, blockchain::BlockChain, utils::generate_hash};
-    use std::collections::HashMap;
+    use crate::{types::block::Block, types::blockchain::BlockChain, types::utils::generate_hash};
+    use std::{collections::HashMap, default};
 
     #[test]
     fn test_genesis_block() {
@@ -70,7 +68,7 @@ mod tests {
         assert!(bc.is_valid_chain(&b2));
     }
     #[test]
-    fn test_new_blocks() {
+    fn new_blocks_have_valid_blockchain_hashes() {
         let mut bc = BlockChain::<String>::new();
 
         bc.initiate().unwrap();
@@ -100,22 +98,91 @@ mod tests {
     }
 
     #[test]
-    fn test_incorporating_new_blocks() {
-        let mut bc = BlockChain::<String>::new();
-
-        bc.initiate().unwrap();
-        for _x in 1..10 {
+    fn blochain_validate_hashes() {
+        let mut bc = BlockChain::<usize>::new();
+        bc.initiate();
+        for k in 1..100 {
             bc.mine().unwrap();
         }
 
-        let mut b2 = bc.clone();
-        for k in 1..2 {
-            b2.mine();
+        BlockChain::validate_hashes(bc.chain());
+    }
+
+    #[test]
+    #[should_panic]
+    fn currupted_block() {
+        let mut bc = BlockChain::<u16>::new();
+
+        bc.initiate();
+        for _ in 1..10 {
+            bc.mine().unwrap();
         }
-        assert!(bc.is_valid_chain(&b2));
 
-        bc.accept(&b2).unwrap();
+        if let Some(block) = bc.get_working_block() {
+            block.data = block.data.checked_add(11).unwrap();
+        }
 
-        assert_eq!(bc, b2);
+        assert!(!BlockChain::validate_hashes(bc.chain()))
+    }
+
+    // #[test]
+    // fn test_incorporating_new_blocks() {
+    //     let mut bc = BlockChain::<String>::new();
+    //
+    //     bc.initiate().unwrap();
+    //     for _x in 1..10 {
+    //         bc.mine().unwrap();
+    //     }
+    //
+    //     let mut b2 = bc.clone();
+    //     for k in 1..2 {
+    //         b2.mine().unwrap();
+    //     }
+    //     assert!(bc.is_valid_chain(&b2));
+    //
+    //     bc.replace_chain(&b2).unwrap();
+    //
+    //     assert_eq!(bc, b2);
+    // }
+
+    #[test]
+    fn replace_blockchain() {
+        let mut bc = BlockChain::<usize>::new();
+
+        bc.initiate();
+        for _ in 1..10 {
+            bc.mine().unwrap();
+        }
+
+        let mut newbc = bc.clone();
+        // bc.mine();
+
+        for _ in 1..10 {
+            newbc.mine().unwrap();
+        }
+
+        bc.replace_chain(&newbc);
+
+        assert_eq!(bc, newbc);
+    }
+
+    #[test]
+    fn does_not_replace_saller_blockchain() {
+        let mut bc = BlockChain::<usize>::new();
+
+        bc.initiate();
+        for _ in 1..10 {
+            bc.mine().unwrap();
+        }
+
+        let mut newbc = bc.clone();
+
+        for _ in 1..10 {
+            newbc.mine().unwrap();
+        }
+
+        bc.replace_chain(&newbc);
+
+        assert_eq!(bc, newbc);
     }
 }

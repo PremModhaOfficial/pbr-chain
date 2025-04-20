@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 
-use crate::utils::{current_time_millis, generate_hash};
+use serde::{Deserialize, Serialize};
+
+use crate::types::utils::{current_time_millis, generate_hash};
 
 // Define a trait that combines Default and Debug
 pub trait DefaultDebug: Default + Debug + PartialEq + Clone {}
@@ -8,7 +10,7 @@ pub trait DefaultDebug: Default + Debug + PartialEq + Clone {}
 // Implement it for all types that satisfy both bounds
 impl<T> DefaultDebug for T where T: Default + Debug + PartialEq + Clone {}
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Block<T: DefaultDebug> {
     pub timestamp_milis: u64,
     pub last_hash: Option<String>,

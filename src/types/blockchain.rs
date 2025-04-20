@@ -1,9 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{
-    block::{Block, DefaultDebug},
-    utils::generate_hash,
+    types::block::{Block, DefaultDebug},
+    types::utils::generate_hash,
 };
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize,Deserialize)]
 pub struct BlockChain<T: DefaultDebug> {
     chain: Vec<Block<T>>,
 }
@@ -67,6 +69,7 @@ impl<T: DefaultDebug> BlockChain<T> {
             incoming_chain.chain().split_first(),
         ) {
             (Some(ours), Some(thiers)) => {
+                // genesis_block matches
                 if ours.0 != thiers.0 {
                     return false;
                 }
@@ -84,12 +87,16 @@ impl<T: DefaultDebug> BlockChain<T> {
         }
     }
 
-    pub fn accept(&mut self, b2: &BlockChain<T>) -> Result<(), String> {
+    pub fn replace_chain(&mut self, b2: &BlockChain<T>) -> Result<(), String> {
         if self.is_valid_chain(b2) {
             *self = b2.clone();
             Ok(())
         } else {
             Err("new Block May Not be valid BlockChain".to_owned())
         }
+    }
+
+    pub fn get_working_block(&mut self) -> Option<&mut Block<T>> {
+        self.chain.last_mut()
     }
 }

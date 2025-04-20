@@ -2,7 +2,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use sha2::{Digest, Sha256};
 
-use crate::block::{Block, DefaultDebug};
+use crate::types::block::{Block, DefaultDebug};
 
 pub fn current_time_millis() -> u64 {
     SystemTime::now()

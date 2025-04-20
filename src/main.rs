@@ -1,33 +1,54 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-#![allow(unused_must_use)]
+use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use std::{thread, time::Duration};
+use actix_cors::Cors;
+use actix_web::{App, HttpResponse, HttpServer, Responder, web};
+use types::blockchain::BlockChain;
+pub mod types;
 
-use blockchain::BlockChain;
-use utils::generate_hash;
+use types::web_types::AppState;
 
-mod block;
-mod blockchain;
-mod dev_test;
-mod utils;
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let app_state = web::Data::new(AppState::new(Mutex::new(BlockChain::new())));
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut bc = BlockChain::<String>::new();
-    bc.initiate()?;
-    // println!("{:#?}", bc);
-    thread::sleep(Duration::from_secs(2));
-    for k in 1..4 {
-        bc.mine();
-        // println!("{:#?}", bc);
+    const PORT: &str = "127.0.0.1:8080";
+    println!("on port {}", PORT);
+    HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .max_age(3600);
+
+        App::new()
+            .app_data(app_state.clone())
+            .wrap(cors)
+            .route("/", web::get().to(ping))
+            .route("/init", web::get().to(initsialize_or_500))
+            .route("/mine", web::get().to(mine_or_500))
+    })
+    .bind(PORT)?
+    .run()
+    .await
+}
+
+async fn initsialize_or_500(data: web::Data<AppState>) -> impl Responder {
+    let mut bc = data.blockchain.lock().unwrap();
+    bc.initiate().unwrap();
+
+    HttpResponse::Ok().json(bc.clone())
+}
+
+async fn mine_or_500(data: web::Data<AppState>) -> impl Responder {
+    let mut bc = data.blockchain.lock().unwrap();
+    match bc.mine() {
+        Ok(val) => HttpResponse::Ok().json(val),
+        Err(e) => HttpResponse::BadRequest().json(e),
     }
-    bc.chain().iter().for_each(|a| {
-        // println!("{}\n{}\n", &a.hash().unwrap(), generate_hash(a));
-        println!("{:#?} -> {}", a.hash().unwrap(), a.timestamp_milis)
+}
+async fn ping(data: web::Data<AppState>) -> impl Responder {
+    let bc = data.blockchain.lock().unwrap();
 
-        // if let Some(hashed) = a.hash() {
-        //     println!("{}\n{}\n\n", hashed, generate_hash(a))
-        // }
-    });
-    Ok(())
+    HttpResponse::Ok().json(format!("Hellow {:#?}", bc))
 }
